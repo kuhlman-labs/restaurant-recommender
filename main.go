@@ -1,17 +1,22 @@
 package main
 
 import (
+	"context"
 	"database/sql"
 	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
+	"os"
 	"regexp"
 	"strconv"
 	"strings"
 	"time"
 
-	_ "github.com/mattn/go-sqlite3"
+	"github.com/Azure/azure-sdk-for-go/sdk/azcore/policy"
+	"github.com/Azure/azure-sdk-for-go/sdk/azidentity"
+	_ "github.com/microsoft/go-mssqldb"
+	mssql "github.com/microsoft/go-mssqldb"
 )
 
 // Restaurant represents a restaurant record.
@@ -39,33 +44,37 @@ type QueryCriteria struct {
 	OpenAt     *time.Time // specific time if provided (e.g., "open at 6pm")
 }
 
-var db *sql.DB
-
-// createTables creates the restaurants and query_logs tables if they don't exist.
+// Updated createTables creates the restaurants and query_logs tables for Azure SQL.
 func createTables() error {
 	restaurantTable := `
-	CREATE TABLE IF NOT EXISTS restaurants (
-		id INTEGER PRIMARY KEY AUTOINCREMENT,
-		name TEXT NOT NULL,
-		style TEXT NOT NULL,
-		address TEXT,
-		openHour TEXT NOT NULL,
-		closeHour TEXT NOT NULL,
-		vegetarian BOOLEAN,
-		deliveries BOOLEAN
-	);`
+    IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'restaurants')
+    BEGIN
+      CREATE TABLE restaurants (
+        id INT IDENTITY(1,1) PRIMARY KEY,
+        name NVARCHAR(255) NOT NULL,
+        style NVARCHAR(255) NOT NULL,
+        address NVARCHAR(255),
+        openHour NVARCHAR(5) NOT NULL,
+        closeHour NVARCHAR(5) NOT NULL,
+        vegetarian BIT,
+        deliveries BIT
+      );
+    END;`
 	_, err := db.Exec(restaurantTable)
 	if err != nil {
 		return err
 	}
 
 	queryLogsTable := `
-	CREATE TABLE IF NOT EXISTS query_logs (
-		id INTEGER PRIMARY KEY AUTOINCREMENT,
-		query TEXT NOT NULL,
-		response TEXT NOT NULL,
-		created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-	);`
+    IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'query_logs')
+    BEGIN
+      CREATE TABLE query_logs (
+        id INT IDENTITY(1,1) PRIMARY KEY,
+        query NVARCHAR(MAX) NOT NULL,
+        response NVARCHAR(MAX) NOT NULL,
+        created_at DATETIME DEFAULT GETDATE()
+      );
+    END;`
 	_, err = db.Exec(queryLogsTable)
 	return err
 }
@@ -112,9 +121,17 @@ func seedRestaurants() error {
 	}
 
 	for _, r := range sampleRestaurants {
-		_, err := db.Exec(`INSERT INTO restaurants (name, style, address, openHour, closeHour, vegetarian, deliveries)
-			VALUES (?, ?, ?, ?, ?, ?, ?)`,
-			r.Name, r.Style, r.Address, r.OpenHour, r.CloseHour, r.Vegetarian, r.Deliveries)
+		_, err := db.Exec(
+			`INSERT INTO restaurants (name, style, address, openHour, closeHour, vegetarian, deliveries)
+            VALUES (@p1, @p2, @p3, @p4, @p5, @p6, @p7)`,
+			sql.Named("p1", r.Name),
+			sql.Named("p2", r.Style),
+			sql.Named("p3", r.Address),
+			sql.Named("p4", r.OpenHour),
+			sql.Named("p5", r.CloseHour),
+			sql.Named("p6", r.Vegetarian),
+			sql.Named("p7", r.Deliveries),
+		)
 		if err != nil {
 			return err
 		}
@@ -273,8 +290,12 @@ func logQueryAndResponse(query string, response Recommendation) {
 		return
 	}
 
-	_, err = db.Exec("INSERT INTO query_logs (query, response, created_at) VALUES (?, ?, ?)",
-		query, string(responseJSON), time.Now())
+	_, err = db.Exec(
+		"INSERT INTO query_logs (query, response, created_at) VALUES (@p1, @p2, @p3)",
+		sql.Named("p1", query),
+		sql.Named("p2", string(responseJSON)),
+		sql.Named("p3", time.Now()),
+	)
 	if err != nil {
 		log.Printf("Error logging query and response: %v", err)
 	}
@@ -314,6 +335,17 @@ func recommendFromNaturalLanguage(w http.ResponseWriter, r *http.Request) {
 
 	if !found {
 		http.Error(w, "No restaurant found matching the criteria", http.StatusNotFound)
+		go logQueryAndResponse(queryParam, Recommendation{
+			RestaurantRecommendation: Restaurant{
+				Name:       "No match found",
+				Style:      "",
+				Address:    "",
+				OpenHour:   "",
+				CloseHour:  "",
+				Vegetarian: false,
+				Deliveries: false,
+			},
+		})
 		return
 	}
 
@@ -326,14 +358,51 @@ func recommendFromNaturalLanguage(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(response)
 }
 
+var db *sql.DB
+
 func main() {
 	var err error
-	// Open a connection to a local SQLite database file.
-	db, err = sql.Open("sqlite3", "./test.db")
-	if err != nil {
-		log.Fatal("Error connecting to SQLite database:", err)
+
+	// Retrieve environment variables for DB server and name.
+	server := os.Getenv("DB_SERVER")
+	database := os.Getenv("DB_NAME")
+
+	if server == "" || database == "" {
+		log.Fatal("Missing environment variables DB_SERVER or DB_NAME")
 	}
+
+	connString := fmt.Sprintf("Server=%s;Database=%s", server, database)
+
+	// Create a managed identity credential.
+	cred, err := azidentity.NewManagedIdentityCredential(nil)
+	if err != nil {
+		log.Fatal("Error creating managed identity credential:", err.Error())
+	}
+
+	// Define a token provider function.
+	tokenProvider := func() (string, error) {
+		token, err := cred.GetToken(context.Background(), policy.TokenRequestOptions{
+			Scopes: []string{"https://database.windows.net//.default"},
+		})
+		return token.Token, err
+	}
+
+	// Create the Access Token Connector.
+	connector, err := mssql.NewAccessTokenConnector(connString, tokenProvider)
+	if err != nil {
+		log.Fatal("Connector creation failed:", err.Error())
+	}
+
+	// Open the database connection.
+	db = sql.OpenDB(connector)
 	defer db.Close()
+
+	// Test the connection.
+	if err := db.PingContext(context.Background()); err != nil {
+		log.Fatal("Error pinging database:", err.Error())
+	}
+
+	fmt.Println("Connected to Azure SQL using Managed Identity!")
 
 	// Create tables if they don't exist.
 	if err := createTables(); err != nil {
@@ -346,6 +415,6 @@ func main() {
 	}
 
 	http.HandleFunc("/recommend", recommendFromNaturalLanguage)
-	fmt.Println("Restaurant recommendation service (using SQLite) is running on port :8080")
-	log.Fatal(http.ListenAndServe(":8080", nil))
+	fmt.Println("Restaurant recommendation service is running on port :80")
+	log.Fatal(http.ListenAndServe(":80", nil))
 }
