@@ -11,7 +11,7 @@ jobs:
         uses: actions/checkout@v2
 
       - name: Azure Login
-        uses: azure/login@v2
+        uses: Azure/login@v2.2.0
         with:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
 
@@ -31,3 +31,23 @@ jobs:
       - name: Terraform Apply
         working-directory: ./terraform
         run: terraform apply -auto-approve tfplan
+      
+      # Capture Terraform outputs and set them as environment variables.
+      - name: Get Terraform Outputs
+        id: tf_output
+        working-directory: ./terraform
+        run: |
+          echo "SQL_SERVER_FQDN=$(terraform output -raw sql_server_fqdn)" >> $GITHUB_ENV
+          echo "SQL_DATABASE_NAME=$(terraform output -raw sql_database_name)" >> $GITHUB_ENV
+
+      - name: Run Flyway Migrations
+        env:
+          # Construct the JDBC URL using outputs and enabling AD service principal auth.
+          FLYWAY_URL: "jdbc:sqlserver://${{ env.SQL_SERVER_FQDN }}:1433;databaseName=${{ env.SQL_DATABASE_NAME }};encrypt=true;trustServerCertificate=false;hostNameInCertificate=*.database.windows.net;loginTimeout=30;authentication=ActiveDirectoryServicePrincipal;tenantId=${{ secrets.TENANT_ID }}"
+          # Use the service principal’s app id and secret:
+          FLYWAY_USER: "${{ secrets.AZURE_SP_APP_ID }}"
+          FLYWAY_PASSWORD: "${{ secrets.AZURE_SP_PASSWORD }}"
+        run: |
+          docker run --rm \
+            -v $(pwd)/db/migrations:/flyway/sql \
+            flyway/flyway -url="$FLYWAY_URL" -user="$FLYWAY_USER" -password="$FLYWAY_PASSWORD" migrate
