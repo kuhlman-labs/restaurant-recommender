@@ -1,7 +1,14 @@
-name: Terraform Deploy
+name: Terraform Deploy and Database Migrations
 
 on:
   workflow_dispatch:
+
+env:
+  # ARM credentials for Azure authentication.
+  ARM_CLIENT_ID: ${{ secrets.ARM_CLIENT_ID }}
+  ARM_CLIENT_SECRET: ${{ secrets.ARM_CLIENT_SECRET }}
+  ARM_SUBSCRIPTION_ID: ${{ secrets.ARM_SUBSCRIPTION_ID }}
+  ARM_TENANT_ID: ${{ secrets.TENANT_ID }}
 
 jobs:
   terraform:
@@ -9,11 +16,6 @@ jobs:
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v2
-
-      - name: Azure Login
-        uses: Azure/login@v2.2.0
-        with:
-          creds: ${{ secrets.AZURE_CREDENTIALS }}
 
       - name: Set up Terraform
         uses: hashicorp/setup-terraform@v3.1.2
@@ -45,8 +47,8 @@ jobs:
           # Construct the JDBC URL using outputs and enabling AD service principal auth.
           FLYWAY_URL: "jdbc:sqlserver://${{ env.SQL_SERVER_FQDN }}:1433;databaseName=${{ env.SQL_DATABASE_NAME }};encrypt=true;trustServerCertificate=false;hostNameInCertificate=*.database.windows.net;loginTimeout=30;authentication=ActiveDirectoryServicePrincipal;tenantId=${{ secrets.TENANT_ID }}"
           # Use the service principal’s app id and secret:
-          FLYWAY_USER: "${{ secrets.AZURE_SP_APP_ID }}"
-          FLYWAY_PASSWORD: "${{ secrets.AZURE_SP_PASSWORD }}"
+          FLYWAY_USER: "${{ secrets.ARM_CLIENT_ID }}"
+          FLYWAY_PASSWORD: "${{ secrets.ARM_CLIENT_SECRET }}"
         run: |
           docker run --rm \
             -v $(pwd)/db/migrations:/flyway/sql \
