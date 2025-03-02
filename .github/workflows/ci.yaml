@@ -2,23 +2,30 @@
 name: CI
 
 on:
-  pull_request:
-    types:
-      - opened
-      - edited
-      - synchronize
-      - reopened
   workflow_call:
+    secrets:
+      ARM_CLIENT_ID:
+        required: true
+        description: 'Azure Service Principal Client ID'
+      ARM_CLIENT_SECRET:
+        required: true
+        description: 'Azure Service Principal Client Secret'
+      ARM_SUBSCRIPTION_ID:
+        required: true
+        description: 'Azure Subscription ID'
+      ARM_TENANT_ID:
+        required: true
+        description: 'Azure Tenant ID'
 
 jobs:
   terraform:
     uses: ./.github/workflows/terraform.yaml
-    with:
-      # ARM credentials for Azure authentication.
+    secrets:
       ARM_CLIENT_ID: ${{ secrets.ARM_CLIENT_ID }}
       ARM_CLIENT_SECRET: ${{ secrets.ARM_CLIENT_SECRET }}
       ARM_SUBSCRIPTION_ID: ${{ secrets.ARM_SUBSCRIPTION_ID }}
       ARM_TENANT_ID: ${{ secrets.ARM_TENANT_ID }}
+
 
   build:
     runs-on: ubuntu-latest
