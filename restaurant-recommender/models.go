@@ -18,11 +18,6 @@ type Recommendation struct {
 	RestaurantRecommendation Restaurant `json:"restaurantRecommendation"`
 }
 
-// RecommendationHandler handles HTTP requests and returns a restaurant recommendation.
-type RecommendationHandler struct {
-	Restaurants []Restaurant `json:"restaurants"`
-}
-
 // QueryCriteria holds parsed filtering options from a natural language query.
 type QueryCriteria struct {
 	Style      string     // e.g., "Mexican", "Italian", etc.

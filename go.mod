@@ -5,6 +5,7 @@ go 1.24.0
 require (
 	github.com/Azure/azure-sdk-for-go/sdk/azcore v1.11.1
 	github.com/Azure/azure-sdk-for-go/sdk/azidentity v1.6.0
+	github.com/DATA-DOG/go-sqlmock v1.5.2
 	github.com/microsoft/go-mssqldb v1.8.0
 )
 

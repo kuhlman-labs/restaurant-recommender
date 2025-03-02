@@ -1,13 +1,10 @@
 package restaurantrecommender
 
 import (
-	"context"
 	"database/sql"
 	"encoding/json"
 	"log"
 	"time"
-
-	mssql "github.com/microsoft/go-mssqldb"
 )
 
 // Updated createTables creates the restaurants and query_logs tables for Azure SQL.
@@ -160,18 +157,4 @@ func logQueryAndResponse(query string, response Recommendation, db *sql.DB) {
 	if err != nil {
 		log.Printf("Error logging query and response: %v", err)
 	}
-}
-
-// InitializeDB sets up the connection.
-func InitializeDB(db *sql.DB, connString string, tokenProvider func() (string, error)) error {
-	connector, err := mssql.NewAccessTokenConnector(connString, tokenProvider)
-	if err != nil {
-		return err
-	}
-	db = sql.OpenDB(connector)
-	// Test DB connection.
-	if err := db.PingContext(context.Background()); err != nil {
-		return err
-	}
-	return nil
 }
