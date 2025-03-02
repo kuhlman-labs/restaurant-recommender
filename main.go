@@ -60,15 +60,19 @@ func main() {
 
 	fmt.Println("Connected to Azure SQL using Managed Identity!")
 
-	// Create tables if they don't exist.
-	if err := restaurantrecommender.CreateTables(db); err != nil {
-		log.Fatal("Error creating tables:", err)
-	}
+	/*
+		//Seeding and creating tables now handled in the flyway migrations.
 
-	// Seed sample restaurant data.
-	if err := restaurantrecommender.SeedRestaurants(db); err != nil {
-		log.Fatal("Error seeding restaurant data:", err)
-	}
+		// Create tables if they don't exist.
+		if err := restaurantrecommender.CreateTables(db); err != nil {
+			log.Fatal("Error creating tables:", err)
+		}
+
+		// Seed sample restaurant data.
+		if err := restaurantrecommender.SeedRestaurants(db); err != nil {
+			log.Fatal("Error seeding restaurant data:", err)
+		}
+	*/
 
 	http.HandleFunc("/recommend", restaurantrecommender.RecommendHandler(db))
 	fmt.Println("Restaurant recommendation service is running on port :80")

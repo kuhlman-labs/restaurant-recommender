@@ -1,5 +1,5 @@
 ---
-name: Development
+name: CI
 
 on:
   pull_request:
@@ -11,6 +11,8 @@ on:
   workflow_call:
 
 jobs:
+  terraform:
+    uses: ./.github/workflows/terraform.yaml@main
 
   build:
     runs-on: ubuntu-latest

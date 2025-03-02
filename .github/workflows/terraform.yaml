@@ -3,6 +3,8 @@ name: Terraform Deploy and Database Migrations
 on:
   workflow_dispatch:
 
+  workflow_call:
+
 env:
   # ARM credentials for Azure authentication.
   ARM_CLIENT_ID: ${{ secrets.ARM_CLIENT_ID }}
