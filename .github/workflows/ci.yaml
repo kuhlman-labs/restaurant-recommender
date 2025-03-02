@@ -12,7 +12,7 @@ on:
 
 jobs:
   terraform:
-    uses: ./.github/workflows/terraform.yaml@main
+    uses: ./.github/workflows/terraform.yaml
 
   build:
     runs-on: ubuntu-latest

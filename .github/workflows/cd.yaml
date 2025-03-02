@@ -12,7 +12,7 @@ env:
   WEBAPP_NAME: ${{ secrets.WEBAPP_NAME }}       
 jobs:
   build:
-    uses: ./.github/workflows/ci.yaml@main
+    uses: ./.github/workflows/ci.yaml
 
   deploy:
     runs-on: ubuntu-latest
