@@ -46,7 +46,7 @@ resource "azurerm_linux_web_app" "webapp" {
   service_plan_id     = azurerm_service_plan.asp.id
 
   site_config {
-    container_registry_managed_identity_client_id = azurerm_container_registry.acr.identity[0].principal_id
+    #container_registry_managed_identity_client_id = azurerm_container_registry.acr.identity[0].principal_id
     container_registry_use_managed_identity       = true
     application_stack {
       docker_image_name        = "restaurant-recommender:latest"
