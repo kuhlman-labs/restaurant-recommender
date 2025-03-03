@@ -27,7 +27,8 @@ func main() {
 		log.Fatal("Missing environment variables DB_SERVER or DB_NAME")
 	}
 
-	connString := fmt.Sprintf("Server=%s;Database=%s", server, database)
+	//connString := fmt.Sprintf("Server=%s;Database=%s", server, database)
+	connString := fmt.Sprintf("Server=%s;Database=%s;Encrypt=true;TrustServerCertificate=false;Connection Timeout=30;", server, database)
 
 	// Create a managed identity credential.
 	cred, err := azidentity.NewManagedIdentityCredential(nil)
