@@ -55,11 +55,10 @@ func main() {
 	defer db.Close()
 
 	// Test the connection.
-	//if err := db.PingContext(context.Background()); err != nil {
-	//	log.Fatal("Error pinging database:", err.Error())
-	//}
-
-	//fmt.Println("Connected to Database...")
+	if err := db.PingContext(context.Background()); err != nil {
+		log.Fatal("Error connecting to the databse:", err.Error())
+	}
+	fmt.Println("Connected to Database...")
 
 	/*
 		//Seeding and creating tables now handled in the flyway migrations.
