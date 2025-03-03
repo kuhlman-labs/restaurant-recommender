@@ -47,7 +47,7 @@ jobs:
 
       - name: Terraform Apply
         working-directory: ./terraform
-        run: terraform apply -var "client_secret=${{secrets.ARM_CLIENT_SECRET}}" -auto-approve tfplan
+        run: terraform apply -auto-approve tfplan
       
       # Capture Terraform outputs and set them as environment variables.
       - name: Get Terraform Outputs
