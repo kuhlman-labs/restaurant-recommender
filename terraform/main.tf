@@ -67,6 +67,11 @@ resource "azurerm_linux_web_app" "webapp" {
     "DB_PASS"   = var.client_secret
 
   }
+  lifecycle {
+    ignore_changes = [
+      application_stack[0].docker_image_name,
+    ]
+  }
 }
 
 ###########################
