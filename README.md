@@ -1,10 +1,10 @@
 # Restaurant Recommender
 
-Restaurant Recommender is a Go-based web service that connects to an Azure SQL database using Managed Identity. It uses Flyway for database migrations, including schema creation and data seeding, and is deployed via GitHub Actions and Terraform.
+Restaurant Recommender is a Go-based web service that you can use to get restaurant recommendations based on various criteria. The service is designed to be deployed on Azure and uses a SQL database for data storage. It leverages Flyway for database migrations and GitHub Actions for CI/CD.
 
 ## Features
 
-- **Managed Identity Authentication:** Uses Azure Managed Identity to securely connect to Azure SQL without storing credentials.
+- **Service Principal Authentication:** The application uses a Service Principal to authenticate with Azure SQL Database.
 - **Database Migrations:** Flyway is used to manage your database schema and seed data.
 - **Containerized Deployment:** The web app is packaged as a Docker container and deployed to an Azure Linux Web App.
 - **CI/CD Pipeline:** GitHub Actions workflows handle continuous integration (CI) and continuous deployment (CD) along with infrastructure provisioning via Terraform.
@@ -15,6 +15,16 @@ Restaurant Recommender is a Go-based web service that connects to an Azure SQL d
 - [Terraform](https://www.terraform.io/downloads) (if you need to provision the Azure infrastructure)
 - An [Azure Subscription](https://azure.microsoft.com/free/) with appropriate permissions
 - GitHub repository secrets for Azure credentials (see below)
+
+### Seetting up Secrets in your GitHub Repository
+Ensure you set up the necessary GitHub Action secrets in your repository:
+- `ARM_CLIENT_ID`: The client ID of the Managed Identity.
+- `ARM_CLIENT_SECRET`: The client secret of the Managed Identity.
+- `ARM_TENANT_ID`: The tenant ID of your Azure subscription.
+- `ARM_SUBSCRIPTION_ID`: The subscription ID of your Azure subscription.
+- `AZURE_CREDENTIALS`: The JSON credentials for the Azure service principal.
+- `ACR_NAME`: The name of your Azure Container Registry.
+- `WEBAPP_NAME`: The name of your Azure Web App.
 
 ## Database Migrations
 
@@ -35,8 +45,6 @@ Terraform is used to provision Azure resources such as:
 - Linux Web App (with System-assigned Managed Identity)
 - Role assignments (for ACR pull and DB access)
 
-Ensure you set up the necessary GitHub secrets in your repository (e.g. `ARM_CLIENT_ID`, `ARM_CLIENT_SECRET`, `ARM_SUBSCRIPTION_ID`, `ARM_TENANT_ID`, and `AZURE_CREDENTIALS` formatted as JSON).
-
 
 ## Deployment with GitHub Actions
 
@@ -46,11 +54,29 @@ The project uses GitHub Actions workflows for CI/CD:
 - **ci.yaml** runs tests and builds the Go application.
 - **terraform.yaml** provisions infrastructure via Terraform and exports outputs (like the SQL server FQDN and DB name) as environment variables for use by the deployment steps.
 
+The CD workflows are triggered on push to the `main` branch and on the CI workflows are tiggered on pull requests.
 
-## Troubleshooting
+## Query the API
+Once deployed, you can query the API like so:
 
-- **Managed Identity Issues:**  
-  Verify that your Azure Web App or service (when deployed) has been assigned the proper permissions to access the SQL database.
+```bash
+curl -X GET "https://<webapp-name>.azurewebsites.net/recommend?query=A vegetarian Italian restaurant that is open at 10am"
+```
+This will return a JSON response with restaurant recommendations based on the query.
+
+```bash
+{
+  "restaurantRecommendation": {
+    "name": "Pizza Hut",
+    "style": "Italian",
+    "address": "Wherever Street 99, Somewhere",
+    "openHour": "09:00",
+    "closeHour": "23:00",
+    "vegetarian": true,
+    "deliveries": true
+  }
+}
+```
 
 ## Contributing
 

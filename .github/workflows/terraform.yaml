@@ -43,7 +43,7 @@ jobs:
 
       - name: Terraform Plan
         working-directory: ./terraform
-        run: terraform plan -out=tfplan
+        run: terraform plan -var "client_secret=${{secrets.ARM_CLIENT_SECRET}}" -out=tfplan
 
       - name: Terraform Apply
         working-directory: ./terraform
