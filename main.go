@@ -28,7 +28,7 @@ func main() {
 	}
 
 	//connString := fmt.Sprintf("Server=%s;Database=%s", server, database)
-	connString := fmt.Sprintf("Server=%s;Database=%s;Encrypt=true;TrustServerCertificate=false;Connection Timeout=30;", server, database)
+	connString := fmt.Sprintf("Server=%s;Database=%s;Encrypt=true;TrustServerCertificate=true;Connection Timeout=30;", server, database)
 
 	// Create a managed identity credential.
 	cred, err := azidentity.NewManagedIdentityCredential(nil)
