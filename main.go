@@ -27,7 +27,8 @@ func main() {
 		log.Fatal("Missing environment variables DB_SERVER or DB_NAME")
 	}
 
-	connString := fmt.Sprintf("Server=%s;Database=%s", server, database)
+	//connString := fmt.Sprintf("Server=%s;Database=%s", server, database)
+	connString := fmt.Sprintf("Server=%s;Database=%s;Encrypt=true;TrustServerCertificate=true;Connection Timeout=30;", server, database)
 
 	// Create a managed identity credential.
 	cred, err := azidentity.NewManagedIdentityCredential(nil)
@@ -60,15 +61,19 @@ func main() {
 
 	fmt.Println("Connected to Azure SQL using Managed Identity!")
 
-	// Create tables if they don't exist.
-	if err := restaurantrecommender.CreateTables(db); err != nil {
-		log.Fatal("Error creating tables:", err)
-	}
+	/*
+		//Seeding and creating tables now handled in the flyway migrations.
 
-	// Seed sample restaurant data.
-	if err := restaurantrecommender.SeedRestaurants(db); err != nil {
-		log.Fatal("Error seeding restaurant data:", err)
-	}
+		// Create tables if they don't exist.
+		if err := restaurantrecommender.CreateTables(db); err != nil {
+			log.Fatal("Error creating tables:", err)
+		}
+
+		// Seed sample restaurant data.
+		if err := restaurantrecommender.SeedRestaurants(db); err != nil {
+			log.Fatal("Error seeding restaurant data:", err)
+		}
+	*/
 
 	http.HandleFunc("/recommend", restaurantrecommender.RecommendHandler(db))
 	fmt.Println("Restaurant recommendation service is running on port :80")

@@ -1,0 +1,51 @@
+---
+name: CI
+
+on:
+  workflow_call:
+    secrets:
+      ARM_CLIENT_ID:
+        required: true
+        description: 'Azure Service Principal Client ID'
+      ARM_CLIENT_SECRET:
+        required: true
+        description: 'Azure Service Principal Client Secret'
+      ARM_SUBSCRIPTION_ID:
+        required: true
+        description: 'Azure Subscription ID'
+      ARM_TENANT_ID:
+        required: true
+        description: 'Azure Tenant ID'
+
+jobs:
+  terraform:
+    uses: ./.github/workflows/terraform.yaml
+    secrets:
+      ARM_CLIENT_ID: ${{ secrets.ARM_CLIENT_ID }}
+      ARM_CLIENT_SECRET: ${{ secrets.ARM_CLIENT_SECRET }}
+      ARM_SUBSCRIPTION_ID: ${{ secrets.ARM_SUBSCRIPTION_ID }}
+      ARM_TENANT_ID: ${{ secrets.ARM_TENANT_ID }}
+
+
+  build:
+    runs-on: ubuntu-latest
+    needs: terraform
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Go
+      uses: actions/setup-go@v5
+      with:
+        go-version: '1.24'
+
+    - name: Build
+      run: go build -v ./...
+    
+    - name: Lint
+      run: go vet ./...
+      
+    - name: Format
+      run: gofmt -s -w .
+
+    - name: Test
+      run: go test -v ./...

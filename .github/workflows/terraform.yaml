@@ -1,7 +1,29 @@
-name: Terraform Deploy
+name: Terraform Deploy and Database Migrations
 
 on:
   workflow_dispatch:
+
+  workflow_call:
+    secrets:
+      ARM_CLIENT_ID:
+        required: true
+        description: 'Azure Service Principal Client ID'
+      ARM_CLIENT_SECRET:
+        required: true
+        description: 'Azure Service Principal Client Secret'
+      ARM_SUBSCRIPTION_ID:
+        required: true
+        description: 'Azure Subscription ID'
+      ARM_TENANT_ID:
+        required: true
+        description: 'Azure Tenant ID'
+
+env:
+  # ARM credentials for Azure authentication.
+  ARM_CLIENT_ID: ${{ secrets.ARM_CLIENT_ID }}
+  ARM_CLIENT_SECRET: ${{ secrets.ARM_CLIENT_SECRET }}
+  ARM_SUBSCRIPTION_ID: ${{ secrets.ARM_SUBSCRIPTION_ID }}
+  ARM_TENANT_ID: ${{ secrets.ARM_TENANT_ID }}
 
 jobs:
   terraform:
@@ -9,11 +31,6 @@ jobs:
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v2
-
-      - name: Azure Login
-        uses: azure/login@v2
-        with:
-          creds: ${{ secrets.AZURE_CREDENTIALS }}
 
       - name: Set up Terraform
         uses: hashicorp/setup-terraform@v3.1.2
@@ -31,3 +48,23 @@ jobs:
       - name: Terraform Apply
         working-directory: ./terraform
         run: terraform apply -auto-approve tfplan
+      
+      # Capture Terraform outputs and set them as environment variables.
+      - name: Get Terraform Outputs
+        id: tf_output
+        working-directory: ./terraform
+        run: |
+          echo "SQL_SERVER_FQDN=$(terraform output -raw sql_server_fqdn)" >> $GITHUB_ENV
+          echo "SQL_DATABASE_NAME=$(terraform output -raw sql_database_name)" >> $GITHUB_ENV
+
+      - name: Run Flyway Migrations
+        env:
+          # Construct the JDBC URL using outputs and enabling AD service principal auth.
+          FLYWAY_URL: "jdbc:sqlserver://${{ env.SQL_SERVER_FQDN }}:1433;databaseName=${{ env.SQL_DATABASE_NAME }};encrypt=true;trustServerCertificate=false;hostNameInCertificate=*.database.windows.net;loginTimeout=30;authentication=ActiveDirectoryServicePrincipal;tenantId=${{ secrets.TENANT_ID }}"
+          # Use the service principal’s app id and secret:
+          FLYWAY_USER: "${{ secrets.ARM_CLIENT_ID }}"
+          FLYWAY_PASSWORD: "${{ secrets.ARM_CLIENT_SECRET }}"
+        run: |
+          docker run --rm \
+            -v $(pwd)/db/migrations:/flyway/sql \
+            flyway/flyway -url="$FLYWAY_URL" -user="$FLYWAY_USER" -password="$FLYWAY_PASSWORD" migrate
