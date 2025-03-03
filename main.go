@@ -27,8 +27,8 @@ func main() {
 		log.Fatal("Missing environment variables DB_SERVER or DB_NAME")
 	}
 
-	//connString := fmt.Sprintf("Server=%s;Database=%s", server, database)
-	connString := fmt.Sprintf("Server=%s;Database=%s;Encrypt=true;TrustServerCertificate=true;Connection Timeout=30;", server, database)
+	connString := fmt.Sprintf("Server=%s;Database=%s", server, database)
+	//connString := fmt.Sprintf("Server=%s;Database=%s;Encrypt=true;TrustServerCertificate=true;Connection Timeout=30;", server, database)
 
 	// Create a managed identity credential.
 	cred, err := azidentity.NewManagedIdentityCredential(nil)
@@ -38,7 +38,7 @@ func main() {
 
 	// Define a token provider function.
 	tokenProvider := func() (string, error) {
-		token, err := cred.GetToken(context.Background(), policy.TokenRequestOptions{
+		token, err := cred.GetToken(context.TODO(), policy.TokenRequestOptions{
 			Scopes: []string{"https://database.windows.net//.default"},
 		})
 		return token.Token, err
