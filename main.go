@@ -20,7 +20,7 @@ func main() {
 	server := os.Getenv("DB_SERVER")
 	database := os.Getenv("DB_NAME")
 	user := os.Getenv("DB_USER")
-	password := os.Getenv("DB_PASSWORD")
+	password := os.Getenv("DB_PASS")
 	if user != "" && password != "" {
 		log.Fatal("Environment variables DB_USER and DB_PASSWORD should not be set when using managed identity.")
 	}
