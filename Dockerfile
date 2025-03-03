@@ -22,6 +22,12 @@ RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o main .
 # ========================
 FROM debian:bullseye-slim AS runtime
 
+# Update and install CA certificates
+RUN apt-get update && \
+    apt-get install -y ca-certificates && \
+    update-ca-certificates --fresh && \
+    rm -rf /var/lib/apt/lists/*
+
 # Create and set working directory inside the container
 WORKDIR /app
 
