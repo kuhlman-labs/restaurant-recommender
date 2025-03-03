@@ -85,7 +85,7 @@ resource "azurerm_mssql_server" "sqlserver" {
   location            = azurerm_resource_group.rg.location
   version             = "12.0"
   azuread_administrator {
-    azuread_authentication_only = true
+    azuread_authentication_only = false
     login_username              = "terraform-sp"
     object_id                   = data.azurerm_client_config.current.object_id
     tenant_id                   = data.azurerm_client_config.current.tenant_id
