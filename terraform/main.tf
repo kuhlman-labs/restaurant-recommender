@@ -63,6 +63,8 @@ resource "azurerm_linux_web_app" "webapp" {
   app_settings = {
     "DB_SERVER" = azurerm_mssql_server.sqlserver.fully_qualified_domain_name
     "DB_NAME"   = azurerm_mssql_database.sqldb.name
+    "DB_USER"   = data.azurerm_client_config.current.client_id
+    "DB_PASS"   = var.client_secret
 
   }
 }
@@ -85,7 +87,7 @@ resource "azurerm_mssql_server" "sqlserver" {
   location            = azurerm_resource_group.rg.location
   version             = "12.0"
   azuread_administrator {
-    azuread_authentication_only = false
+    azuread_authentication_only = true
     login_username              = "terraform-sp"
     object_id                   = data.azurerm_client_config.current.object_id
     tenant_id                   = data.azurerm_client_config.current.tenant_id

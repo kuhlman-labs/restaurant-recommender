@@ -39,3 +39,8 @@ variable "sql_database_name" {
   type        = string
   default     = "rrdb"
 }
+
+variable "client_secret" {
+  description = "The client secret for the Azure AD Service Principal."
+  type        = string
+  }
