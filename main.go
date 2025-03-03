@@ -56,7 +56,7 @@ func main() {
 
 	// Test the connection.
 	if err := db.PingContext(context.Background()); err != nil {
-		log.Fatal("Error connecting to the databse:", err.Error())
+		log.Fatalf("Error connecting to database with connection string %s: %v", connString, err)
 	}
 	fmt.Println("Connected to Database...")
 
