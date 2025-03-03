@@ -38,7 +38,7 @@ func main() {
 
 	// Define a token provider function.
 	tokenProvider := func() (string, error) {
-		token, err := cred.GetToken(context.TODO(), policy.TokenRequestOptions{
+		token, err := cred.GetToken(context.Background(), policy.TokenRequestOptions{
 			Scopes: []string{"https://database.windows.net//.default"},
 		})
 		return token.Token, err
@@ -55,11 +55,11 @@ func main() {
 	defer db.Close()
 
 	// Test the connection.
-	if err := db.PingContext(context.Background()); err != nil {
-		log.Fatal("Error pinging database:", err.Error())
-	}
+	//if err := db.PingContext(context.Background()); err != nil {
+	//	log.Fatal("Error pinging database:", err.Error())
+	//}
 
-	fmt.Println("Connected to Azure SQL using Managed Identity!")
+	//fmt.Println("Connected to Database...")
 
 	/*
 		//Seeding and creating tables now handled in the flyway migrations.
