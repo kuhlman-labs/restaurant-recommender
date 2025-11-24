@@ -24,7 +24,7 @@ jobs:
     needs: build
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Login to Azure CLI
         uses: Azure/login@v2
